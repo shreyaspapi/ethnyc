@@ -25,10 +25,11 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
 module.exports = {
   solidity: "0.8.4",
   networks: {
-    ropsten: {
-      url: process.env.ROPSTEN_URL || "",
-      accounts:
-        process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+    polygon: {
+      url: process.env.POLYGON_URL,
+      accounts: [process.env.PRIVATE_KEY],
+      blockGasLimit: 20000000,
+      gasPrice: 35000000000 // 35 Gwei
     },
   },
   gasReporter: {

@@ -1,23 +1,8 @@
 // SPDX-License-Identifier: AGPLv3
 pragma solidity ^0.8.0;
 
-import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+interface IBurnMintSuperToken {
 
-import {SuperTokenBase} from "./base/SuperTokenBase.sol";
-
-/// @title Burnable and Mintable Super Token
-/// @author jtriley.eth
-/// @notice This does not perform checks when burning
-contract BurnMintSuperToken is SuperTokenBase, AccessControl {
-	/// @notice Minter Role
-	bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
-
-	/// @notice Burner Role
-	bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
-
-    constructor() {
-        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
-    }
 
 	/// @notice Initializer, used AFTER factory upgrade
 	/// @dev We MUST mint here, there is no other way to mint tokens
@@ -34,10 +19,7 @@ contract BurnMintSuperToken is SuperTokenBase, AccessControl {
 		uint256 initialSupply,
 		address receiver,
 		bytes memory userData
-	) external {
-		_initialize(name, symbol, factory);
-		// _mint(receiver, initialSupply, userData);
-	}
+	) external;
 
 	/// @notice Mints tokens, only the owner may do this
 	/// @param receiver Receiver of minted tokens
@@ -46,16 +28,10 @@ contract BurnMintSuperToken is SuperTokenBase, AccessControl {
 		address receiver,
 		uint256 amount,
 		bytes memory userData
-	) external onlyRole(MINTER_ROLE) {
-		_mint(receiver, amount, userData);
-	}
+	) external;
 
 	/// @notice Burns from message sender
 	/// @param amount Amount to burn
 	function burn(uint256 amount, bytes memory userData)
-		external
-		onlyRole(BURNER_ROLE)
-	{
-		_burn(msg.sender, amount, userData);
-	}
+		external;
 }

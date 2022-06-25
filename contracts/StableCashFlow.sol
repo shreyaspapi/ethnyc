@@ -17,11 +17,13 @@ contract StableCashFlow is RedirectTokens {
     constructor(
         ISuperfluid host,
         IConstantFlowAgreementV1 cfa,
+        IInstantDistributionAgreementV1 ida,
         ISuperToken _token1, 
         ISuperToken _token2
     ) RedirectTokens(
             host,
             cfa,
+            ida,
             _token1,
             _token2
         ) public {

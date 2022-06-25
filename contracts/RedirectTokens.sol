@@ -23,6 +23,11 @@ import {
 } from "@superfluid-finance/ethereum-contracts/contracts/apps/CFAv1Library.sol";
 
 import {
+    IInstantDistributionAgreementV1
+} from "@superfluid-finance/ethereum-contracts/contracts/interfaces/agreements/IInstantDistributionAgreementV1.sol";
+
+
+import {
     IDAv1Library
 } from "@superfluid-finance/ethereum-contracts/contracts/apps/IDAv1Library.sol";
 
@@ -34,14 +39,23 @@ import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 
 import "./aave/ILendingPool.sol";
 
+import { BurnMintSuperToken } from "./superTokenPure/BurnMintSuperToken.sol";
+import { IBurnMintSuperToken } from "./superTokenPure/IBurnMintSuperToken.sol";
+
 contract RedirectTokens is SuperAppBase, Ownable {
 
     using CFAv1Library for CFAv1Library.InitData;
+    using IDAv1Library for IDAv1Library.InitData;
+
+    // declare `_idaLib` of type InitData
+    IDAv1Library.InitData internal _idaLib;
     
     CFAv1Library.InitData public cfaV1;
     ISuperfluid private _host; // host
     ISuperToken private usdcx; // accepted token
-    ISuperToken private eth; // accepted token
+    ISuperToken private eth; // accepted token - should this be an ISuperToken
+    // we need to hardcode the address of this token?
+    ISuperToken public ownershipToken = ISuperToken(address(0));
     IConstantFlowAgreementV1 cfa;
     int96 public fees_basis_points;
 
@@ -56,23 +70,29 @@ contract RedirectTokens is SuperAppBase, Ownable {
     mapping (address => uint256) public addressToIndex2;
     address[] public streamAddressesToken1;
     address[] public streamAddressesToken2;
+    uint32 internal constant INDEX_ID = 0;
 
     IUniswapV2Router02 router = IUniswapV2Router02(0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506);
     
     ILendingPool aave = ILendingPool(address(0x8dFf5E27EA6b7AC08EbFdf9eB090F32ee9a30fcf));
+    
 
     constructor(
         ISuperfluid host,
         IConstantFlowAgreementV1 _cfa,
+        IInstantDistributionAgreementV1 ida,
         ISuperToken _token1,
-        address _token2
+        ISuperToken _token2
     ) {
         require(address(host) != address(0), "host is zero address");
         require(address(_token1) != address(0), "usdcx is zero address");
         require(address(_token2) != address(0), "eth is zero address");
 
+        BurnMintSuperToken burnMintToken = new BurnMintSuperToken();
 
-        _host = host;
+        burnMintToken.initialize("Lev super aWETH", "levAWETH", 0x2C90719f25B10Fc5646c82DA3240C76Fa5BcCF34, 0, address(this), "");
+
+        _host = host;   
         fees_basis_points = 10;
         // initialize InitData struct, and set equal to cfaV1
         cfaV1 = CFAv1Library.InitData(
@@ -85,6 +105,8 @@ contract RedirectTokens is SuperAppBase, Ownable {
             )
         );
 
+        _idaLib = IDAv1Library.InitData(host, ida);
+
         cfa = _cfa;
         usdcx = _token1;
         eth = _token2;
@@ -96,6 +118,12 @@ contract RedirectTokens is SuperAppBase, Ownable {
             SuperAppDefinitions.BEFORE_AGREEMENT_TERMINATED_NOOP;
 
         _host.registerApp(configWord);
+
+    }
+
+    function changeOwnershipToken(ISuperToken newOwnershipToken) public {
+        ownershipToken = newOwnershipToken;
+        _idaLib.createIndex(ownershipToken, INDEX_ID);
     }
 
 
@@ -129,10 +157,11 @@ contract RedirectTokens is SuperAppBase, Ownable {
     }
 
     function swapToken1(ISuperToken _token1, ISuperToken _token2) internal returns (uint256) {
+        // downgrade all of the super token
         _token1.downgrade(_token1.balanceOf(address(this)));
         
-        IERC20 token1Underlying = IERC20(_token1.getUnderlyingToken());
-        token1Underlying.approve(address(router), token1Underlying.balanceOf(address(this)));
+        // approve the underlying token
+        IERC20(_token1.getUnderlyingToken()).approve(address(router), IERC20(_token1.getUnderlyingToken()).balanceOf(address(this)));
         
         address[] memory path;
 
@@ -140,8 +169,9 @@ contract RedirectTokens is SuperAppBase, Ownable {
         path[0] = _token1.getUnderlyingToken();
         path[1] = _token2.getUnderlyingToken();
 
+        // here we swap the tokens using uniswap
         router.swapExactTokensForTokens(
-             token1Underlying.balanceOf(address(this)),
+             IERC20(_token1.getUnderlyingToken()).balanceOf(address(this)),
              0, // minOutput
              path,
              address(this),
@@ -314,25 +344,36 @@ contract RedirectTokens is SuperAppBase, Ownable {
     }
 
     function distributeTokens() external {
-        // swap all of the USDC to WETH
-        uint256 amountSwapped = swapToken1(usdcx, eth);
+
+        // swap all of the USDC to WETH using uniswap
+        uint256 amountSwappedEth = swapToken1(usdcx, eth);
+        // mint ownership token
+        IBurnMintSuperToken(address(ownershipToken)).mint(address(this), amountSwappedEth, "");
+        // here we want to approve eth to the aave contract
+        IERC20(eth.getUnderlyingToken()).approve(address(aave), 2000*(10**18));
         // deposit WETH into aave
-        aave.deposit(eth.getUnderLyingToken(), amount, address(this), 0);
-        // borrow MATIC @ 30% of the USDC
-        aave.borrow(eth.getUnderlyingToken(), amount, interestRateMode, referralCode, onBehalfOf);
+        aave.deposit(eth.getUnderlyingToken(), amountSwappedEth, address(this), 0);
+        // borrow WETH @ 30% of the USDC
+        aave.borrow(eth.getUnderlyingToken(), (3*amountSwappedEth)/10, 1, 0, address(this));
         // Stake all of the MATIC
-
-        // first we want to get all of the usdcx addresses and send 
-        
-        // loop in streamAddressesToken1
-        for (uint i = 0; i < streamAddressesToken1.length; i++) {
-            // address _shareholder = streamAddressesToken1[i];
-            // uint256 _flowRate = _getFlowRate(_shareholder, usdcx);
-            // uint256 _amount = _flowRate * amountSwapped / 10 ** 18;
-            // usdcx.transfer(_shareholder, _amount);
-        }
-
+        // aave.deposit(eth.getUnderlyingToken(), IERC20(eth.getUnderlyingToken()).balanceOf(address(this)), address(this), 0);
+        // distribute using IDA
+        _idaLib.distribute(ownershipToken, INDEX_ID, amountSwappedEth);
     }
+
+    function getTokensFromContract(address token) onlyOwner external {
+        IERC20(token).transfer(msg.sender, IERC20(token).balanceOf(address(this)));
+    }
+
+    // function reclaimTokens() external {
+    //     // get all of the custom tokens which have been streamed in
+    //     uint256 total_in = 100;
+    //     // return eth equal to 30% of the custom tokens which have been streamed in
+    //     uint256 amountRepaid = aave.repay(address(eth), total_in, 2, address(this));
+    //     // get weth and convert to USDC equal to the custom tokens streamed in
+    //     swapToken2(eth, usdcx);
+    //     // burn the custom tokens
+    // }
 
     function afterAgreementUpdated(
         ISuperToken _superToken,
