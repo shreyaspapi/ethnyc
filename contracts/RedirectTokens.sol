@@ -12,6 +12,8 @@ import {
     SuperAppDefinitions
 } from "@superfluid-finance/ethereum-contracts/contracts/interfaces/superfluid/ISuperfluid.sol";
 
+import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -60,7 +62,7 @@ contract RedirectTokens is SuperAppBase, Ownable {
 
     // declare `_idaLib` of type InitData
     IDAv1Library.InitData internal _idaLib;
-    
+    AggregatorV3Interface internal priceFeed;
     CFAv1Library.InitData public cfaV1;
     ISuperfluid private _host; // host
     ISuperToken private usdcx; // accepted token
@@ -510,6 +512,20 @@ contract RedirectTokens is SuperAppBase, Ownable {
     function _isCFAv1(address agreementClass) private view returns (bool) {
         return ISuperAgreement(agreementClass).agreementType()
             == keccak256("org.superfluid-finance.agreements.ConstantFlowAgreement.v1");
+    }
+
+     /**
+     * Returns the latest price
+     */
+    function getLatestPrice() public view returns (int) {
+        (
+            /*uint80 roundID*/,
+            int price,
+            /*uint startedAt*/,
+            /*uint timeStamp*/,
+            /*uint80 answeredInRound*/
+        ) = priceFeed.latestRoundData();
+        return price;
     }
 }
 
