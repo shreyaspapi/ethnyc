@@ -211,6 +211,8 @@ contract RedirectTokens is SuperAppBase, Ownable {
         // approve the underlying token
         _token1.approve(address(router), _token1.balanceOf(address(this)));
         
+        uint256 linkPrice = getLatestPrice();
+
         address[] memory path;
 
         path = new address[](2);
@@ -220,7 +222,7 @@ contract RedirectTokens is SuperAppBase, Ownable {
         // here we swap the tokens using uniswap
         router.swapExactTokensForTokens(
              _token1.balanceOf(address(this)),
-             0, // minOutput
+             linkPrice * _token1.balanceOf(address(this)), // minOutput
              path,
              address(this),
              block.timestamp + 3600
