@@ -26,11 +26,17 @@ module.exports = {
   solidity: "0.8.4",
   networks: {
     polygon: {
-      url: process.env.POLYGON_URL,
+      url: "https://polygon-mainnet.g.alchemy.com/v2/BTn-jG_oF3H-ATSCFz57ulMdvCYLQy9e",
       accounts: [process.env.PRIVATE_KEY],
       blockGasLimit: 20000000,
-      gasPrice: 35000000000 // 35 Gwei
+      gasPrice: 35000000000,
+      gas: 2100000
     },
+    rinkeby: {
+      url: "https://rinkeby.infura.io/v3/39982aafcd7240098e7ba54f05b7863c",
+      accounts: [process.env.PRIVATE_KEY],
+    }
+
   },
   gasReporter: {
     enabled: process.env.REPORT_GAS !== undefined,

@@ -19,13 +19,17 @@ contract StableCashFlow is RedirectTokens {
         IConstantFlowAgreementV1 cfa,
         IInstantDistributionAgreementV1 ida,
         ISuperToken _token1, 
-        ISuperToken _token2
+        ISuperToken _token2,
+        ISwapRouter02 swapRouter,
+        string memory registrationKey
     ) RedirectTokens(
             host,
             cfa,
             ida,
             _token1,
-            _token2
+            _token2,
+            swapRouter,
+            registrationKey
         ) public {
         token1 = _token1;
         token2 = _token2;
