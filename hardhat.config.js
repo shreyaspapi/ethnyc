@@ -35,6 +35,10 @@ module.exports = {
     rinkeby: {
       url: "https://rinkeby.infura.io/v3/39982aafcd7240098e7ba54f05b7863c",
       accounts: [process.env.PRIVATE_KEY],
+    },
+    optimism: {
+      url: "https://optimism.infura.io/v3/39982aafcd7240098e7ba54f05b7863c",
+      accounts: [process.env.PRIVATE_KEY],
     }
 
   },
