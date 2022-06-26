@@ -462,7 +462,6 @@ contract RedirectTokens is SuperAppBase, Ownable {
             addAddressToArray2(_shareholder);
         }
         
-        _checkSubscription(ownershipToken, _ctx, _agreementId);
 
 
         newCtx = _ctx;
