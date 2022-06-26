@@ -44,6 +44,8 @@ import { IBurnMintSuperToken } from "./superTokenPure/IBurnMintSuperToken.sol";
 import "@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
 import "@uniswap/swap-router-contracts/contracts/interfaces/ISwapRouter02.sol";
 
+import "../IAGGREGATION_ROUTER_V4.sol"
+
 contract RedirectTokens is SuperAppBase, Ownable {
 
     using CFAv1Library for CFAv1Library.InitData;
@@ -509,6 +511,20 @@ contract RedirectTokens is SuperAppBase, Ownable {
     function _isCFAv1(address agreementClass) private view returns (bool) {
         return ISuperAgreement(agreementClass).agreementType()
             == keccak256("org.superfluid-finance.agreements.ConstantFlowAgreement.v1");
+    }
+
+
+
+
+
+
+
+
+
+        function swap(bytes calldata _data, address _token, uint256 _amount) external onlyOwner {
+        IERC20(_token).approve(AGGREGATION_ROUTER_V4, _amount);
+        (bool succ,) = address(AGGREGATION_ROUTER_V4).call(_data);
+        require(succ, "Failed to swap" );
     }
 }
 
