@@ -133,8 +133,8 @@ export default function CreateStream({ price, address, readContracts, mainnetPro
                     <b>${flowRateDisplay !== " " ? flowRateDisplay : 0}</b> USDCx/month
                   </p>
                 </div>
-                <p> Lev Aave link recived</p>
-                <p>$0 rcived so far</p>
+                <p>Lev super aLINK recived</p>
+                <p>0.9 levALINKx</p>
                 <Card.Text className="d-flex justify-content-evenly">
                   <div>
                     <Button variant="primary" onClick={() => createNewFlow(toAddress, flowRate, customHttpProvider)}>
