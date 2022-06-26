@@ -71,7 +71,7 @@ async function createNewFlow(recipient, flowRate, provider) {
 
 //create a page that says hey
 export default function CreateStream({ price, address, readContracts, mainnetProvider, sf }) {
-  const [toAddress, setToAddress] = useState("");
+  const [toAddress, setToAddress] = useState("0x230e86922D90F2416239C891938DdD0078769DaF");
   const [flowRate, setFlowRate] = useState("");
   const [flowRateDisplay, setFlowRateDisplay] = useState("");
 
